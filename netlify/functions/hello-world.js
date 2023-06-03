@@ -17,14 +17,14 @@ export const handler = async (event, context) => {
   const timestamp = event.headers?.['X_FND_TIMESTAMP'];
   const receivedHash = event.headers?.['X_FND_HASH'];
 
-  if(!VerifyHash(timestamp, receivedHash)){
-    return {
-      statusCode: 403,
-      body: JSON.stringify({
-        data: 'Forbidden'
-      })
-    }
-  }
+  // if(!VerifyHash(timestamp, receivedHash)){
+  //   return {
+  //     statusCode: 403,
+  //     body: JSON.stringify({
+  //       data: 'Forbidden'
+  //     })
+  //   }
+  // }
 
 // Encrypt some data.
   function encrypt(data) {
