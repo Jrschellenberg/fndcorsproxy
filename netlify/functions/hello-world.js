@@ -1,51 +1,42 @@
 import * as crypto from 'node:crypto';
 
-// Loading the keys
-const privateKey = Buffer.from(process.env.PRIVATE_KEY_BASE_64 , 'base64').toString('ascii')
-const publicKey = Buffer.from(process.env.PUBLIC_KEY_BASE_64 , 'base64').toString('ascii')
 
+const key = crypto.createHash('sha256').update(process.env.PRIVATE_KEY).digest();
+const iv = crypto.createHash('md5').update(process.env.PRIVATE_IV).digest();
 
 
 
 export const handler = async () => {
-  // Original data
-  const data = 'my secret data';
 
-// Encryption with public key
-  const encryptedData = crypto.publicEncrypt(
-      {
-        key: publicKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: "sha256",
-      },
-      // We convert the data string to a buffer using 'utf8' encoding
-      Buffer.from(data)
-  );
+// Encrypt some data.
+  function encrypt(data) {
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    let encryptedData = cipher.update(data, 'utf8', 'hex');
+    encryptedData += cipher.final('hex');
+    return encryptedData;
+  }
 
-  console.log("encypted data: ", encryptedData.toString("base64"));
+// Decrypt some data.
+  function decrypt(encryptedData) {
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decryptedData = decipher.update(encryptedData, 'hex', 'utf8');
+    decryptedData += decipher.final('utf8');
+    return decryptedData;
+  }
 
-// Decryption with private key
-  const decryptedData = crypto.privateDecrypt(
-      {
-        key: privateKey,
-        // In order to decrypt the data, we need to specify the
-        // same hashing function and padding scheme that we used to
-        // encrypt the data in the first place
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: "sha256",
-      },
-      encryptedData
-  );
+// Test
+  const data = 'Hello, Worddld!';
+  const encryptedData = encrypt(data);
+  console.log('Encrypted data:', encryptedData);
 
-// The decrypted data is of the Buffer type, which we can convert to a
-// string to reveal the original data
-  console.log("decrypted data: ", decryptedData.toString());
+  const decryptedData = decrypt(encryptedData);
+  console.log('Decrypted data:', decryptedData);
 
 
   return {
     statusCode: 200,
     body: JSON.stringify({
-      message: `Encrypted ${encryptedData.toString("base64")}\n\nDecrypted: ${decryptedData.toString()}`
+      message: `Encrypted ${encryptedData}\n\nDecrypted: ${decryptedData.toString()}`
     })
   }
 }

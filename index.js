@@ -1,11 +1,17 @@
-const privateKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq88TLqAg+QbOzS8rXZLk
-Sornsxuh6FfNT4dETSHt95fmlSMFA4ispYH3CGVz4YL7ZfTZLzSpzJgPANnKSVr5
-dVvEmQ1NHUdMtlUOOIG2hEYxaHF84b2wyDIKS3uEK7oBtfUzBSdMMC0UAp1FEl0H
-ltO+iQK7Xth3cs0YzVq8QT2lz0ldpq3bQIsa6PrXXBhMBBBNAs02rLpJgb09ZMri
-R2UhImgP9z3ZfjcsUIylF6uyY+D+qRO1QQaXpZY9HMe8SfLkDApCNP8s7C6Y89lA
-NF2wh31wdWngjcEbyfGJjw011ySR/jHgN/upoYJDpdlBFD3Ciz5r1CZq/g51r41K
-CQIDAQAB
------END PUBLIC KEY-----`
-const buff = Buffer.from(privateKey).toString('base64');
-console.log(buff);
+import * as crypto from 'node:crypto';
+
+
+const key = crypto.randomBytes(32);
+
+// Initialization vector.
+const iv = crypto.randomBytes(16);
+
+function decrypt(encryptedData) {
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  let decryptedData = decipher.update(encryptedData, 'hex', 'utf8');
+  decryptedData += decipher.final('utf8');
+  return decryptedData;
+}
+
+const decryptedData = decrypt("161b1b607e055614b99b0ac03d224b02");
+console.log('Decrypted data:', decryptedData);
