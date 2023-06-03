@@ -1,4 +1,5 @@
-import fetch from 'node-fetch'
+import fetch from 'node-fetch';
+import * as crypto from 'node:crypto';
 
 export const handler = async (event, context) => {
   const eventBody = JSON.parse(event.body)
