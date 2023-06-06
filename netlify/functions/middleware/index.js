@@ -1,4 +1,5 @@
 import * as crypto from 'node:crypto';
+import shopifyService from '../services/shopifyService.js';
 const secret = process.env.SHARED_HASH_SECRET;
 
 const err = new Error('Forbidden');
@@ -42,4 +43,22 @@ export function verifyRequest(req, res, next) {
   catch(e) {
     return next(err);
   }
+}
+
+
+export function bindShopifyService(req, res, next) {
+  const err = new Error('No Shop URL Provided');
+  err.status = 400;
+
+  const store =  req?.get('X_FND_STORE');
+  if(store === 'US'){
+    res.locals.shopify = shopifyService.unitedStates;
+  }
+  else if(store === 'CAD'){
+    res.locals.shopify = shopifyService.canada;
+  }
+  else {
+    return next(err);
+  }
+  return next();
 }
