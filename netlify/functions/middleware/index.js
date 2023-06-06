@@ -51,6 +51,7 @@ export function bindShopifyService(req, res, next) {
   err.status = 400;
 
   const store =  req?.get('X_FND_STORE');
+  console.log("STORE IS ", store);
   if(store === 'US'){
     res.locals.shopify = shopifyService.unitedStates;
   }
@@ -60,5 +61,6 @@ export function bindShopifyService(req, res, next) {
   else {
     return next(err);
   }
-  return next();
+  console.log("did we hit this shit?");
+  next();
 }
