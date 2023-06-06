@@ -32,7 +32,7 @@ export default function expressApp() {
 
 
   // Apply express middlewares
-  if(!process.env.NETLIFY_DEV){
+  if(!process.env.NODE_ENV){
     app.use(cors(corsOptions));
   }
 

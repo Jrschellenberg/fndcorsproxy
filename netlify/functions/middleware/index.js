@@ -1,31 +1,28 @@
-
-
 import * as crypto from 'node:crypto';
 const secret = process.env.SHARED_HASH_SECRET;
-
-console.log(process.env.NODE_ENV)
 
 const err = new Error('Forbidden');
 err.status = 403;
 
-
-// TODO: Add check to only do this on prod
 export function verifyRequest(req, res, next) {
-
+  if(process.env.NODE_ENV === 'development'){
+    console.log("DOES IT HIT HERE?")
+    return next();
+  }
 
   const timestamp = req?.get('X_FND_TIMESTAMP');
   const receivedHash = req?.get('X_FND_HASH');
 
   try {
     if(!timestamp || !receivedHash){
-      next(err);
+      return next(err);
     }
 
     const currentTimeStampSeconds = Math.floor(Date.now() / 1000);
     const requestedTimeStamp = parseInt(timestamp);
     // Timestamp is more than 10 seconds old
     if(currentTimeStampSeconds - requestedTimeStamp > 10) {
-      next(err);
+      return next(err);
     }
 
     const hmac = crypto.createHmac('sha256', secret);
@@ -38,11 +35,11 @@ export function verifyRequest(req, res, next) {
 
     // Compare the hashes
     if(calculatedHash !== receivedHash){
-      next(err);
+      return next(err);
     }
-    next()
+    return next()
   }
   catch(e) {
-    next(err);
+    return next(err);
   }
 }

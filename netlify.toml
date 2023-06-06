@@ -1,3 +1,13 @@
+[context.production.environment]
+  NODE_VERSION = "18.10.0"
+  NODE_ENV = "production"
+  GIFT_CARD_SUFFIX = 'CRED'
+
+[context.dev.environment]
+  NODE_VERSION = "18.10.0"
+  NODE_ENV = "development"
+  GIFT_CARD_SUFFIX = 'TEST'
+
 # example netlify.toml
 [build]
   command = "# no build command"
@@ -5,7 +15,7 @@
   publish = "public"
 
 [functions]
-  node_bundler = "esbuild" 
+  node_bundler = "esbuild"
 
   ## Uncomment to use this redirect for Single Page Applications like create-react-app.
   ## Not needed for static site generators.
