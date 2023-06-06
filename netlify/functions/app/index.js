@@ -1,6 +1,7 @@
 /* Express App */
 import express from 'express';
 import morgan from 'morgan';
+import cors from 'cors';
 import bodyParser from 'body-parser';
 import compression from 'compression';
 import expressSanitizer from 'express-sanitizer';
@@ -12,7 +13,29 @@ import router from '../routes';
 export default function expressApp() {
   const app = express();
 
+
+  const whitelist = ['https://smackpetfood.com', 'https://ca.smackpetfood.com', 'https://smack-pet-food-usa.myshopify.com', 'https://smack-pet-food.myshopify.com', 'http://localhost:8888' ]
+  const corsOptions = {
+    origin: function (origin, callback) {
+      console.log(process.env)
+      console.log("hit this shit here?")
+      console.log(origin);
+
+
+      if (whitelist.indexOf(origin) !== -1) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    }
+  }
+
+
   // Apply express middlewares
+  if(!process.env.NETLIFY_DEV){
+    app.use(cors(corsOptions));
+  }
+
 
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
@@ -38,7 +61,7 @@ export default function expressApp() {
     res.locals.message = err.message;
     console.error('error is ', err);
     const status = err.status || 500;
-    return res.json({ success: false, status, message: err.message });
+    return res.status(status).json({ success: false, status, message: err.message });
   });
 
   return app;
