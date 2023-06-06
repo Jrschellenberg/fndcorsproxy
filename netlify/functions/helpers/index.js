@@ -18,3 +18,11 @@ export function decrypt(encryptedData) {
   decryptedData += decipher.final('utf8');
   return decryptedData;
 }
+
+export function generateGiftCardCode(input) {
+  const sha1 = crypto.createHash('sha1');
+  sha1.update(input.toString());
+  const fullHash = sha1.digest('hex');
+  const partialHash = fullHash.substring(0, 16);
+  return `${partialHash}${process.env.NODE_ENV === 'development' ? 'TEST' : 'CRED' }`;
+}
