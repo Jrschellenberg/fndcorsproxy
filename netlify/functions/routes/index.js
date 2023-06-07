@@ -6,9 +6,9 @@ const router = express.Router();
 
 
 router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res, next) => {
-  const { amount, customerId, name, email, phone } = req.body;
-  if(!amount || !customerId || !name || !email || !phone ){
-    const err = new Error('Require field of "shop", "amount", "customerId, name, email, and phone"');
+  const { amount, customerId } = req.body;
+  if(!amount || !customerId ){
+    const err = new Error('Require field of "amount", "customerId"');
     err.status = 400;
     return next(err);
   }
@@ -16,18 +16,14 @@ router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res,
   try {
     let response = await res.locals.shopify.post('/gift_cards.json', {
       "gift_card": {
-        "note": `Store Credit for ${name}\nPhone:${phone}\nEmail:${email}`,
+        "note": `App Issued Store Credit`,
         "initial_value": amount.toString(),
         "code": generateGiftCardCode(customerId),
         "customer_id": customerId
       }
     });
 
-    console.log("did we get here?");
-
     const encryptedGiftCardData = encrypt(response?.data?.gift_card);
-
-    console.log("EncryptedGiftCardData is ", encryptedGiftCardData)
 
     await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
       "metafield": {
@@ -38,9 +34,6 @@ router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res,
       }
     });
 
-    console.log("SECOND d2id we get here?")
-
-
     await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
       "metafield": {
         "namespace": "fnd",
@@ -49,8 +42,6 @@ router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res,
         "value": "0.00"
       }
     });
-
-    console.log("THIRD did we get here?")
 
     res.status(201).json({
       message: `Successfully Issued Store Credit Stored as ${encryptedGiftCardData}`
@@ -64,10 +55,92 @@ router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res,
   }
 });
 
-router.get('/', verifyRequest, async (req, res, next) => {
-  console.log(process.env.NODE_ENV)
-  res.status(200).json({hello: "world"})
-})
+
+router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, next) => {
+  const { amount, encryptedData, customerId } = req.body;
+  if(!encryptedData || !customerId || !amount ){
+    const err = new Error('Require field of "encryptedData", "customerId" and "amount"');
+    err.status = 400;
+    return next(err);
+  }
+
+  const decryptedData = decrypt(encryptedData);
+
+  try {
+    let response = await res.locals.shopify.get(`/gift_cards/${decryptedData.id}.json`);
+
+    const { id, balance, disabled_at } = response.data;
+
+    let total = amount;
+    if(!disabled_at && parseFloat(balance) > 0 ){
+      total += parseFloat(balance);
+      await res.locals.shopify.get(`/gift_cards/${id}/disable.json`);
+    }
+
+
+    response = await res.locals.shopify.post('/gift_cards.json', {
+      "gift_card": {
+        "note": `App Issued Store Credit`,
+        "initial_value": total.toString(),
+        "code": generateGiftCardCode(customerId),
+        "customer_id": customerId
+      }
+    });
+
+    const encryptedGiftCardData = encrypt(response?.data?.gift_card);
+
+    await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
+      "metafield": {
+        "namespace": "fnd",
+        "key": "encrypted_gift_card",
+        "type": "single_line_text_field",
+        "value": encryptedGiftCardData,
+      }
+    });
+
+    await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
+      "metafield": {
+        "namespace": "fnd",
+        "key": "store_credit",
+        "type": "number_decimal",
+        "value": "0.00"
+      }
+    });
+
+    res.status(201).json({
+      message: `Successfully Updated Store Credit Stored as ${encryptedGiftCardData}`
+    });
+
+  }
+  catch(e){
+    e = e.toJSON();
+    const err = new Error(`Shopify Err: ${e.message}`)
+    err.status = e.status;
+    return next(err)
+  }
+});
+
+router.post('/store_credit/code', verifyRequest, async (req, res, next) => {
+  const { encryptedData, customerId } = req.body;
+  if(!encryptedData  ){
+    const err = new Error('Require field of "encryptedData", "customerId"');
+    err.status = 400;
+    return next(err);
+  }
+
+  const decryptedData = decrypt(encryptedData);
+
+  if(decryptedData.customer_id !== customerId){
+    const err = new Error('Unauthorized');
+    err.status = 401;
+    return next(err)
+  }
+
+  res.status(200).json({
+    message: `Success`,
+    code: decryptedData.code,
+  });
+});
 
 
 export default router;
