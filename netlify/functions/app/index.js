@@ -11,6 +11,8 @@ import router from '../routes';
 
 /* My express App */
 export default function expressApp() {
+
+  console.log("got here");
   const app = express();
 
 
@@ -32,8 +34,13 @@ export default function expressApp() {
 
 
   // Apply express middlewares
+
   if(!process.env.NODE_ENV){
     app.use(cors(corsOptions));
+    console.log("got here INSIDE");
+  }
+  else {
+    app.use(cors());
   }
 
 

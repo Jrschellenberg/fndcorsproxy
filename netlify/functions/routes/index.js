@@ -69,12 +69,17 @@ router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, 
   try {
     let response = await res.locals.shopify.get(`/gift_cards/${decryptedData.id}.json`);
 
-    const { id, balance, disabled_at } = response.data;
+    console.log(response, response.data);
+
+    const { id, balance, disabled_at } = response.data?.gift_card;
 
     let total = amount;
+
+    console.log(id, balance, disabled_at, !disabled_at, parseFloat(balance) > 0);
+
     if(!disabled_at && parseFloat(balance) > 0 ){
       total += parseFloat(balance);
-      await res.locals.shopify.get(`/gift_cards/${id}/disable.json`);
+      await res.locals.shopify.post(`/gift_cards/${id}/disable.json`);
     }
 
 
