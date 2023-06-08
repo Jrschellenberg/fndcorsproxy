@@ -13,14 +13,9 @@ import router from '../routes';
 export default function expressApp() {
   const app = express();
 
-  const whitelist = ['https://smackpetfood.com', 'https://ca.smackpetfood.com', 'https://smack-pet-food-usa.myshopify.com', 'https://smack-pet-food.myshopify.com', 'http://localhost:8888' ]
+  const whitelist = ['https://www.smackpetfood.com', 'https://smackpetfood.com', 'https://ca.smackpetfood.com', 'https://smack-pet-food-usa.myshopify.com', 'https://smack-pet-food.myshopify.com', 'http://localhost:8888' ]
   const corsOptions = {
     origin: function (origin, callback) {
-      console.log(process.env)
-      console.log("hit this shit here?")
-      console.log(origin);
-
-
       if (whitelist.indexOf(origin) !== -1) {
         callback(null, true)
       } else {
