@@ -1,10 +1,8 @@
 [context.production.environment]
-  NODE_VERSION = "18.10.0"
   NODE_ENV = "production"
   GIFT_CARD_SUFFIX = 'CRED'
 
 [context.dev.environment]
-  NODE_VERSION = "18.10.0"
   NODE_ENV = "development"
   GIFT_CARD_SUFFIX = 'TEST'
 
