@@ -18,7 +18,7 @@ axiosRetry(axios, {
 class ShopifyService {
   constructor() {
     this.canada = axios.create({
-      baseURL: `https://smack-pet-food-usa.myshopify.com/admin/api/${process.env.SHOPIFY_API_VERSION}/`,
+      baseURL: `https://smack-pet-food.myshopify.com/admin/api/${process.env.SHOPIFY_API_VERSION}/`,
       headers: {
         'X-Shopify-Access-Token' : process.env.SMACK_CAD_AUTH,
       }

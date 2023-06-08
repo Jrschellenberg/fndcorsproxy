@@ -159,7 +159,7 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
     }
 
     let response = await res.locals.shopify.get(`/gift_cards/${decryptedData.id}.json`);
-    const { balance, disabled_at } = response.data?.gift_card;
+    const { id, balance, disabled_at } = response.data?.gift_card;
 
     const isDisabled = !!disabled_at;
 
@@ -168,6 +168,7 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
       const metaFieldToDelete = response?.data?.metafields
           .find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
       if(metaFieldToDelete){
+        await res.locals.shopify.post(`/gift_cards/${id}/disable.json`);
         await res.locals.shopify.delete(`/customers/${customerId}/metafields/${metaFieldToDelete.id}.json`);
       }
     }
