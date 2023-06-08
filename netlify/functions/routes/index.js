@@ -157,7 +157,7 @@ router.post('/store_credit/code', verifyRequest, async (req, res, next) => {
     res.status(200).json({
       message: `Success`,
       code: decryptedData.code,
-      balance,
+      balance: parseFloat(balance),
       isDisabled: !disabled_at,
     });
   }
