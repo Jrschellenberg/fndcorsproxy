@@ -48,10 +48,17 @@ router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res,
     });
   }
   catch(e) {
-    e = e.toJSON();
-    const err = new Error(`Shopify Err: ${e.message}`)
-    err.status = e.status;
-    return next(err)
+    try {
+      e = e.toJSON();
+      const err = new Error(`Shopify Err: ${e.message}`)
+      err.status = e.status;
+      return next(err)
+    }
+    catch(e){
+      const err = new Error("Unknown error")
+      err.status = 500;
+      return next(err);
+    }
   }
 });
 
@@ -119,10 +126,18 @@ router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, 
 
   }
   catch(e){
-    e = e.toJSON();
-    const err = new Error(`Shopify Err: ${e.message}`)
-    err.status = e.status;
-    return next(err)
+    try {
+      e = e.toJSON();
+      const err = new Error(`Shopify Err: ${e.message}`)
+      err.status = e.status;
+      return next(err)
+
+    }
+    catch(e){
+      const err = new Error("Unknown error")
+      err.status = 500;
+      return next(err);
+    }
   }
 });
 
@@ -166,12 +181,10 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
   }
   catch(e){
     try {
-      // console.log(e)
       e = e.toJSON();
       const err = new Error(`Shopify Err: ${e.message}`)
       err.status = e.status;
       return next(err)
-
     }
     catch(e){
       const err = new Error("Unknown error")
@@ -179,7 +192,6 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
       return next(err);
     }
   }
-
 });
 
 
