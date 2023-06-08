@@ -11,10 +11,7 @@ import router from '../routes';
 
 /* My express App */
 export default function expressApp() {
-
-  console.log("got here");
   const app = express();
-
 
   const whitelist = ['https://smackpetfood.com', 'https://ca.smackpetfood.com', 'https://smack-pet-food-usa.myshopify.com', 'https://smack-pet-food.myshopify.com', 'http://localhost:8888' ]
   const corsOptions = {
@@ -32,9 +29,7 @@ export default function expressApp() {
     }
   }
 
-
   // Apply express middlewares
-
   if(!process.env.NODE_ENV){
     app.use(cors(corsOptions));
     console.log("got here INSIDE");
@@ -42,7 +37,6 @@ export default function expressApp() {
   else {
     app.use(cors());
   }
-
 
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));

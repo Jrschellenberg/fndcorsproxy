@@ -126,7 +126,7 @@ router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, 
   }
 });
 
-router.post('/store_credit/code', verifyRequest, async (req, res, next) => {
+router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req, res, next) => {
   try {
     const { encryptedData, customerId } = req.body;
     if(!encryptedData  ){
