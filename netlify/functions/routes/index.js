@@ -72,15 +72,21 @@ router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, 
     const { id, balance, disabled_at } = response.data?.gift_card;
 
     let total = amount;
+    let wasPreviousAmount = false;
     if(!disabled_at && parseFloat(balance) > 0 ){
       total += parseFloat(balance);
+      wasPreviousAmount = true;
       await res.locals.shopify.post(`/gift_cards/${id}/disable.json`);
     }
 
 
+    const giftCardNote = wasPreviousAmount
+        ? `App Issued Store Credit\nPrevious Gift Card ${id} had Total of ${balance} and Carried Forward Balance`
+        : `App Issued Store Credit`
+
     response = await res.locals.shopify.post('/gift_cards.json', {
       "gift_card": {
-        "note": `App Issued Store Credit`,
+        "note": giftCardNote,
         "initial_value": total.toString(),
         "code": generateGiftCardCode(customerId),
         "customer_id": customerId
@@ -121,25 +127,46 @@ router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, 
 });
 
 router.post('/store_credit/code', verifyRequest, async (req, res, next) => {
-  const { encryptedData, customerId } = req.body;
-  if(!encryptedData  ){
-    const err = new Error('Require field of "encryptedData", "customerId"');
-    err.status = 400;
-    return next(err);
+  try {
+    const { encryptedData, customerId } = req.body;
+    if(!encryptedData  ){
+      const err = new Error('Require field of "encryptedData", "customerId"');
+      err.status = 400;
+      return next(err);
+    }
+
+    const decryptedData = decrypt(encryptedData);
+
+    if(decryptedData.customer_id !== customerId){
+      const err = new Error('Unauthorized');
+      err.status = 401;
+      return next(err)
+    }
+
+    let response = await res.locals.shopify.get(`/gift_cards/${decryptedData.id}.json`);
+    const { balance, disabled_at } = response.data?.gift_card;
+
+    if(!disabled_at || parseFloat(balance) <= 0 ){
+      const metaFieldToDelete = response?.data?.metafields
+          .find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
+      if(metaFieldToDelete){
+        await res.locals.shopify.delete(`/customers/${customerId}/metafields/${metaFieldToDelete.id}.json`);
+      }
+    }
+
+    res.status(200).json({
+      message: `Success`,
+      code: decryptedData.code,
+      balance,
+      isDisabled: !disabled_at,
+    });
   }
-
-  const decryptedData = decrypt(encryptedData);
-
-  if(decryptedData.customer_id !== customerId){
-    const err = new Error('Unauthorized');
-    err.status = 401;
-    return next(err)
-  }
-
-  res.status(200).json({
-    message: `Success`,
-    code: decryptedData.code,
-  });
+  catch(e){
+      e = e.toJSON();
+      const err = new Error(`Shopify Err: ${e.message}`)
+      err.status = e.status;
+      return next(err)
+    }
 });
 
 
