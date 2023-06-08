@@ -19,7 +19,8 @@ router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res,
         "note": `App Issued Store Credit`,
         "initial_value": amount.toString(),
         "code": generateGiftCardCode(customerId),
-        "customer_id": customerId
+        "customer_id": customerId,
+        "template_suffix": "store_credit",
       }
     });
 
@@ -96,7 +97,8 @@ router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, 
         "note": giftCardNote,
         "initial_value": total.toString(),
         "code": generateGiftCardCode(customerId),
-        "customer_id": customerId
+        "customer_id": customerId,
+        "template_suffix": "store_credit",
       }
     });
 
