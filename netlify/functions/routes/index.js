@@ -146,7 +146,10 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
     let response = await res.locals.shopify.get(`/gift_cards/${decryptedData.id}.json`);
     const { balance, disabled_at } = response.data?.gift_card;
 
-    if(!disabled_at || parseFloat(balance) <= 0 ){
+    const isDisabled = !!disabled_at;
+
+    if(isDisabled || parseFloat(balance) <= 0 ){
+      response = await res.locals.shopify.get(`/customers/${customerId}/metafields.json`)
       const metaFieldToDelete = response?.data?.metafields
           .find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
       if(metaFieldToDelete){
@@ -158,15 +161,25 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
       message: `Success`,
       code: decryptedData.code,
       balance: parseFloat(balance),
-      isDisabled: !disabled_at,
+      isDisabled,
     });
   }
   catch(e){
+    try {
+      // console.log(e)
       e = e.toJSON();
       const err = new Error(`Shopify Err: ${e.message}`)
       err.status = e.status;
       return next(err)
+
     }
+    catch(e){
+      const err = new Error("Unknown error")
+      err.status = 500;
+      return next(err);
+    }
+  }
+
 });
 
 
