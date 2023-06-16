@@ -46,6 +46,30 @@ export function verifyRequest(req, res, next) {
 }
 
 
+export const verifyWebhookShopify = (req, res, next) => {
+  const hmacHeader = req.get('X-Shopify-Hmac-Sha256');
+  const webhookKey = process.env.WEBHOOK_KEY;
+
+  console.log(webhookKey, "Shopify secret key?");
+
+  const requestBody = JSON.stringify(req.body);
+
+  const generatedHash = crypto
+    .createHmac('sha256', webhookKey)
+    .update(requestBody, 'utf8')
+    .digest('base64');
+
+  console.log("Hash is", generatedHash, hmacHeader);
+  if (generatedHash !== hmacHeader) {
+    console.log('nope')
+    return res.sendStatus(403);
+  }
+
+  next();
+};
+
+
+
 export function bindShopifyService(req, res, next) {
   const err = new Error('No Shop URL Provided');
   err.status = 400;
