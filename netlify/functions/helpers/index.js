@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-
+import axios from 'axios';
 
 const key = crypto.createHash('sha256').update(process.env.PRIVATE_KEY).digest();
 const iv = crypto.createHash('md5').update(process.env.PRIVATE_IV).digest();
@@ -25,4 +25,51 @@ export function generateGiftCardCode(input) {
   const fullHash = sha1.digest('hex');
   const partialHash = fullHash.substring(0, 16);
   return `${partialHash}${process.env.NODE_ENV === 'development' ? 'TEST' : 'CRED' }`;
+}
+
+
+// TODO refactor this to use existing functionality found in shopify service. Look at old endpoint for reference.
+export async function getCustomerMetafields(customerId, shop) {
+  const accessToken = shop.includes('usa') ? process.env.SMACK_USD_AUTH : process.env.SMACK_CAD_AUTH
+  const apiUrl = `${shop}/admin/api/${process.env.SHOPIFY_API_VERSION}/graphql.json`;
+  const query = `
+    query($customerId: ID!) {
+      customer(id: $customerId) {
+        metafields(first: 10) {
+          edges {
+            node {
+              id
+              key
+              value
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    customerId
+  };
+
+  try {
+    const response = await axios.post(apiUrl,
+      {
+        query,
+        variables
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': accessToken
+        }
+      }
+    );
+
+    const customerMetafields = response.data.data.customer.metafields.edges.map(edge => edge.node);
+    return customerMetafields;
+  } catch (error) {
+    console.log('Failed to retrieve customer metafields:', error);
+    return null;
+  }
 }
