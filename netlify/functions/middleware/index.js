@@ -74,16 +74,26 @@ export function bindShopifyService(req, res, next) {
   const err = new Error('No Shop URL Provided');
   err.status = 400;
 
-  const store =  req?.get('X_FND_STORE');
+  let store;
+
+  if (req?.get('X_FND_STORE')) {
+    store =  req?.get('X_FND_STORE');
+  } else if (req.headers['x-shopify-shop-domain']) {
+    if (req.headers['x-shopify-shop-domain'].includes('usa')) {
+      store = 'US'
+    } else {
+      store = 'CAD'
+    }
+  } else {
+    return next(err);
+  }
+
   console.log("STORE IS ", store);
   if(store === 'US'){
     res.locals.shopify = shopifyService.unitedStates;
   }
   else if(store === 'CAD'){
     res.locals.shopify = shopifyService.canada;
-  }
-  else {
-    return next(err);
   }
   console.log("did we hit this shit?");
   next();

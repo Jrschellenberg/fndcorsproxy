@@ -30,8 +30,7 @@ export function generateGiftCardCode(input) {
 
 // TODO refactor this to use existing functionality found in shopify service. Look at old endpoint for reference.
 export async function getCustomerMetafields(customerId, shop) {
-  const accessToken = shop.includes('usa') ? process.env.SMACK_USD_AUTH : process.env.SMACK_CAD_AUTH
-  const apiUrl = `${shop}/admin/api/${process.env.SHOPIFY_API_VERSION}/graphql.json`;
+  const apiUrl = `/graphql.json`;
   const query = `
     query($customerId: ID!) {
       customer(id: $customerId) {
@@ -48,23 +47,8 @@ export async function getCustomerMetafields(customerId, shop) {
     }
   `;
 
-  const variables = {
-    customerId
-  };
-
   try {
-    const response = await axios.post(apiUrl,
-      {
-        query,
-        variables
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Shopify-Access-Token': accessToken
-        }
-      }
-    );
+    const response = await shop.post(apiUrl, { query, variables: { customerId }});
 
     const customerMetafields = response.data.data.customer.metafields.edges.map(edge => edge.node);
     return customerMetafields;

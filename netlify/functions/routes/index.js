@@ -5,18 +5,12 @@ import shopifyService from '../services/shopifyService.js';
 const express = require('express');
 const router = express.Router();
 
-// we can probably clean this up by creating or updating another middleware function to
-// set the correct shop. Similar to how the old endpoints are handling it.
-const CA_URL = 'https://smack-pet-food-usa.myshopify.com';
-const USA_URL = 'https://smack-pet-food.myshopify.com'
 
-router.post('/webhook/customer/update', async (req, res, next) => {
-  const shop = req.headers['x-shopify-shop-domain'].includes('ca.') ? CA_URL : USA_URL;
+router.post('/webhook/customer/update', bindShopifyService, async (req, res, next) => {
   const customerId = req?.body?.admin_graphql_api_id;
   let customerMetafields = null;
-
   try {
-    customerMetafields = await getCustomerMetafields(customerId, shop);
+    customerMetafields = await getCustomerMetafields(customerId, res.locals.shopify);
     console.log('customerMetafields ', customerMetafields);
   } catch (error) {
     console.log('Error retrieving customer metafields:', error);
