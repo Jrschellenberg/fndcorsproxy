@@ -12,6 +12,7 @@ router.post('/webhook/customer/update', bindShopifyService, async (req, res, nex
 
   try {
     customerMetafields = await getCustomerMetafields(customerId, shop);
+    console.log(customerMetafields)
     const deleteStoreCreditField = customerMetafields.find(field => field.key === 'delete_store_credit') || null;
     const storeCreditField = customerMetafields.find(field => field.key === 'store_credit') || null;
     const storeCreditEncryptedDataField = customerMetafields.find(field => field.key === 'encrypted_gift_card') || null;
@@ -19,20 +20,20 @@ router.post('/webhook/customer/update', bindShopifyService, async (req, res, nex
     const deleteStoreCredit = deleteStoreCreditField?.value === 'true' ? true : false;
     const storeCreditAmount = parseFloat(storeCreditField?.value) || 0;
     const encryptedData = storeCreditEncryptedDataField?.value || null;
-    const formattedCustomerId = customerId?.split('/')?.reverse()[0];
+    const formattedCustomerId = parseInt(customerId?.split('/')?.reverse()[0]);
 
     if (deleteStoreCredit) {
-      await deleteMetafieldAndDisableGiftCard(encryptedData, formattedCustomerId, shop, next);
-      return;
+      await deleteMetafieldAndDisableGiftCard(encryptedData, formattedCustomerId, shop, res, next);
     }
     else if (storeCreditAmount !== 0 && encryptedData) {
-      await updateStoreCredit(storeCreditAmount, encryptedData, formattedCustomerId, shop, next);
+      await updateStoreCredit(storeCreditAmount, encryptedData, formattedCustomerId, shop, res, next);
     } else if (storeCreditAmount !== 0) {
-      await issueStoreCredit(storeCreditvalue, formattedCustomerId, shop, next);
+      await issueStoreCredit(storeCreditAmount, formattedCustomerId, shop, res, next);
     }
     if (encryptedData) {
-      await updateCreditCode(encryptedData, formattedCustomerId, shop, next);
+      await updateCreditCode(encryptedData, formattedCustomerId, shop, res, next);
     }
+    res.status(204);
   } catch (error) {
     console.log('Error retrieving customer metafields:', error);
   }
