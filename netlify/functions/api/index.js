@@ -52,6 +52,7 @@ export async function issueStoreCredit(amount, customerId, shop, next) {
 
     await shop.post(`/customers/${customerId}/metafields.json`, {
       "metafield": {
+        "customer_id": customerId,
         "namespace": "fnd",
         "key": "encrypted_gift_card",
         "type": "single_line_text_field",
@@ -225,7 +226,7 @@ export async function updateCreditCode(encryptedData, customerId, shop, next) {
 
 export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerId, shop, next) {
   try {
-    if(!encryptedData  ){
+    if(!encryptedData || !customerId  ){
       const err = new Error('Require field of "encryptedData", "customerId"');
       err.status = 400;
       return next(err);

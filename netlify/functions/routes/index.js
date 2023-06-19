@@ -19,18 +19,19 @@ router.post('/webhook/customer/update', bindShopifyService, async (req, res, nex
     const deleteStoreCredit = deleteStoreCreditField?.value === 'true' ? true : false;
     const storeCreditAmount = parseFloat(storeCreditField?.value) || 0;
     const encryptedData = storeCreditEncryptedDataField?.value || null;
+    const formattedCustomerId = customerId?.split('/')?.reverse()[0];
 
     if (deleteStoreCredit) {
-      await deleteMetafieldAndDisableGiftCard(encryptedData, customerId, shop, next);
+      await deleteMetafieldAndDisableGiftCard(encryptedData, formattedCustomerId, shop, next);
       return;
     }
     else if (storeCreditAmount !== 0 && encryptedData) {
-      await updateStoreCredit(storeCreditAmount, encryptedData, customerId, shop, next);
+      await updateStoreCredit(storeCreditAmount, encryptedData, formattedCustomerId, shop, next);
     } else if (storeCreditAmount !== 0) {
-      await issueStoreCredit(storeCreditvalue, customerId, shop, next);
+      await issueStoreCredit(storeCreditvalue, formattedCustomerId, shop, next);
     }
     if (encryptedData) {
-      await updateCreditCode(encryptedData, customerId, shop, next);
+      await updateCreditCode(encryptedData, formattedCustomerId, shop, next);
     }
   } catch (error) {
     console.log('Error retrieving customer metafields:', error);
