@@ -24,14 +24,12 @@ export async function getCustomerMetafields(customerId, shop) {
     const customerMetafields = response.data.data.customer.metafields.edges.map(edge => edge.node);
     return customerMetafields;
   } catch (error) {
-    console.log('Failed to retrieve customer metafields:', error);
+    console.error('Failed to retrieve customer metafields:', error);
     return null;
   }
 }
 
-export async function issueStoreCredit(amount, customerId, shop, next) {
-  console.log('amount ', amount);
-  console.log('customerId ', customerId)
+export async function issueStoreCredit(amount, customerId, shop, res, next) {
   if(!amount || !customerId ){
     const err = new Error('Require field of "amount", "customerId"');
     err.status = 400;
@@ -41,6 +39,7 @@ export async function issueStoreCredit(amount, customerId, shop, next) {
   try {
     let response = await shop.post('/gift_cards.json', {
       "gift_card": {
+        "customer_id": customerId,
         "note": `App Issued Store Credit`,
         "initial_value": amount.toString(),
         "code": generateGiftCardCode(customerId),
@@ -70,7 +69,7 @@ export async function issueStoreCredit(amount, customerId, shop, next) {
       }
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: `Successfully Issued Store Credit Stored as ${encryptedGiftCardData}`
     });
   }
@@ -90,7 +89,7 @@ export async function issueStoreCredit(amount, customerId, shop, next) {
 };
 
 
-export async function updateStoreCredit(amount, encryptedData, customerId, shop, next) {
+export async function updateStoreCredit(amount, encryptedData, customerId, shop, res, next) {
   if(!encryptedData || !customerId || !amount ){
     const err = new Error('Require field of "encryptedData", "customerId" and "amount"');
     err.status = 400;
@@ -120,6 +119,7 @@ export async function updateStoreCredit(amount, encryptedData, customerId, shop,
 
     response = await shop.post('/gift_cards.json', {
       "gift_card": {
+        "customer_id": customerId,
         "note": giftCardNote,
         "initial_value": total.toString(),
         "code": generateGiftCardCode(customerId),
@@ -149,7 +149,7 @@ export async function updateStoreCredit(amount, encryptedData, customerId, shop,
       }
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: `Successfully Updated Store Credit Stored as ${encryptedGiftCardData}`
     });
 
@@ -171,7 +171,7 @@ export async function updateStoreCredit(amount, encryptedData, customerId, shop,
 };
 
 
-export async function updateCreditCode(encryptedData, customerId, shop, next) {
+export async function updateCreditCode(encryptedData, customerId, shop, res, next) {
   try {
     if(!encryptedData  ){
       const err = new Error('Require field of "encryptedData", "customerId"');
@@ -189,20 +189,22 @@ export async function updateCreditCode(encryptedData, customerId, shop, next) {
 
     let response = await shop.get(`/gift_cards/${decryptedData.id}.json`);
     const { id, balance, disabled_at } = response.data?.gift_card;
-
-    const isDisabled = !!disabled_at;
-
+    const isDisabled = !disabled_at;
+    console.log(1)
+    console.log(response.data?.gift_card)
     if(isDisabled || parseFloat(balance) <= 0 ){
       response = await shop.get(`/customers/${customerId}/metafields.json`)
-      const metaFieldToDelete = response?.data?.metafields
-          .find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
+      const metaFieldToDelete = response?.data?.metafields.find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
+      console.log(2, id)
       if(metaFieldToDelete){
         await shop.post(`/gift_cards/${id}/disable.json`);
+        console.log(3)
         await shop.delete(`/customers/${customerId}/metafields/${metaFieldToDelete.id}.json`);
+        console.log(4)
       }
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: `Success`,
       code: decryptedData.code,
       balance: parseFloat(balance),
@@ -210,6 +212,7 @@ export async function updateCreditCode(encryptedData, customerId, shop, next) {
     });
   }
   catch(e){
+    console.log(e.message)
     try {
       e = e.toJSON();
       const err = new Error(`Shopify Err: ${e.message}`)
@@ -224,7 +227,7 @@ export async function updateCreditCode(encryptedData, customerId, shop, next) {
   }
 };
 
-export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerId, shop, next) {
+export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerId, shop, res, next) {
   try {
     if(!encryptedData || !customerId  ){
       const err = new Error('Require field of "encryptedData", "customerId"');
@@ -251,7 +254,7 @@ export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerI
       await shop.delete(`/customers/${customerId}/metafields/${metaFieldToDelete.id}.json`);
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: `Success`,
       code: decryptedData.code,
       balance: parseFloat(balance),
