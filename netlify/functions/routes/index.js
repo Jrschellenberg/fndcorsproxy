@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 
 
-router.post('/webhook/customer/update', bindShopifyService, async (req, res, next) => {
+router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService, async (req, res, next) => {
   const customerId = req?.body?.admin_graphql_api_id;
   const shop = res.locals.shopify;
   let customerMetafields = null;
@@ -29,8 +29,9 @@ router.post('/webhook/customer/update', bindShopifyService, async (req, res, nex
       await updateStoreCredit(storeCreditAmount, encryptedData, formattedCustomerId, shop, res, next);
     } else if (storeCreditAmount !== 0) {
       await issueStoreCredit(storeCreditAmount, formattedCustomerId, shop, res, next);
+    } else {
+      res.status(204).json({'message': 'ignored'});
     }
-    res.status(204);
   } catch (error) {
     console.log('Error retrieving customer metafields:', error);
   }

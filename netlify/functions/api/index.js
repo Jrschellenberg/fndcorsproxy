@@ -190,9 +190,25 @@ export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerI
     let response = await shop.get(`/gift_cards/${decryptedData.id}.json`);
     const { id } = response.data?.gift_card;
 
-    response = await shop.get(`/customers/${customerId}/metafields.json`)
+    response = await shop.get(`/customers/${customerId}/metafields.json`);
+
     const metaFieldToDelete = response?.data?.metafields
         .find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
+    const metaFieldToUpdate = response?.data?.metafields
+        .find(f => f.namespace === 'fnd' && f.key === 'delete_store_credit' )
+
+    if(metaFieldToUpdate){
+      await shop.post(`/customers/${customerId}/metafields.json`, {
+        "metafield": {
+          "customer_id": customerId,
+          "namespace": "fnd",
+          "key": "delete_store_credit",
+          "type": "boolean",
+          "value": false,
+        }
+      });
+    }
+
     if(metaFieldToDelete){
       await shop.post(`/gift_cards/${id}/disable.json`);
       await shop.delete(`/customers/${customerId}/metafields/${metaFieldToDelete.id}.json`);
@@ -200,9 +216,6 @@ export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerI
 
     return res.status(200).json({
       message: `Success`,
-      code: decryptedData.code,
-      balance: parseFloat(balance),
-      isDisabled,
     });
   }
   catch(e){

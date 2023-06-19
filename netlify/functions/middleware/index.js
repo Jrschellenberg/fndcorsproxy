@@ -47,14 +47,20 @@ export function verifyRequest(req, res, next) {
 
 
 export const verifyWebhookShopify = (req, res, next) => {
-  const hmacHeader = req.get('X-Shopify-Hmac-Sha256');
-  const webhookKey = process.env.WEBHOOK_KEY;
+  const hmacHeader = req.get('X-Shopify-Hmac-Sha256')
+  let webhookKey;
+
+  if (req.headers['x-shopify-shop-domain'].includes('usa')) {
+    webhookKey = process.env.WEBHOOK_KEY_USA;
+  } else {
+    webhookKey = process.env.WEBHOOK_KEY_CAD;
+  }
 
   const requestBody = JSON.stringify(req.body);
 
   const generatedHash = crypto
-    .createHmac('sha256', webhookKey)
-    .update(requestBody, 'utf8')
+    .createHmac('sha256', secret)
+    .update(requestBody, 'utf8', 'hex')
     .digest('base64');
 
   if (generatedHash !== hmacHeader) {
