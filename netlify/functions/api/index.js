@@ -171,62 +171,6 @@ export async function updateStoreCredit(amount, encryptedData, customerId, shop,
 };
 
 
-export async function updateCreditCode(encryptedData, customerId, shop, res, next) {
-  try {
-    if(!encryptedData  ){
-      const err = new Error('Require field of "encryptedData", "customerId"');
-      err.status = 400;
-      return next(err);
-    }
-
-    const decryptedData = decrypt(encryptedData);
-
-    if(decryptedData.customer_id !== customerId){
-      const err = new Error('Unauthorized');
-      err.status = 401;
-      return next(err)
-    }
-
-    let response = await shop.get(`/gift_cards/${decryptedData.id}.json`);
-    const { id, balance, disabled_at } = response.data?.gift_card;
-    const isDisabled = !disabled_at;
-    console.log(1)
-    console.log(response.data?.gift_card)
-    if(isDisabled || parseFloat(balance) <= 0 ){
-      response = await shop.get(`/customers/${customerId}/metafields.json`)
-      const metaFieldToDelete = response?.data?.metafields.find(f => f.namespace === 'fnd' && f.key === 'encrypted_gift_card' )
-      console.log(2, id)
-      if(metaFieldToDelete){
-        await shop.post(`/gift_cards/${id}/disable.json`);
-        console.log(3)
-        await shop.delete(`/customers/${customerId}/metafields/${metaFieldToDelete.id}.json`);
-        console.log(4)
-      }
-    }
-
-    return res.status(200).json({
-      message: `Success`,
-      code: decryptedData.code,
-      balance: parseFloat(balance),
-      isDisabled,
-    });
-  }
-  catch(e){
-    console.log(e.message)
-    try {
-      e = e.toJSON();
-      const err = new Error(`Shopify Err: ${e.message}`)
-      err.status = e.status;
-      return next(err)
-    }
-    catch(e){
-      const err = new Error("Unknown error")
-      err.status = 500;
-      return next(err);
-    }
-  }
-};
-
 export async function deleteMetafieldAndDisableGiftCard(encryptedData, customerId, shop, res, next) {
   try {
     if(!encryptedData || !customerId  ){
