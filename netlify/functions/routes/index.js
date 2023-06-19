@@ -26,11 +26,10 @@ router.post('/webhook/customer/update', bindShopifyService, async (req, res, nex
     }
     else if (storeCreditAmount !== 0 && encryptedData) {
       await updateStoreCredit(storeCreditAmount, encryptedData, customerId, shop, next);
-      return;
     } else if (storeCreditAmount !== 0) {
       await issueStoreCredit(storeCreditvalue, customerId, shop, next);
-      return;
-    } else if (encryptedData) {
+    }
+    if (encryptedData) {
       await updateCreditCode(encryptedData, customerId, shop, next);
     }
   } catch (error) {
