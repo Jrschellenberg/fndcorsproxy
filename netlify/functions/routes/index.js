@@ -1,4 +1,4 @@
-import { bindShopifyService, verifyRequest, verifyWebhookShopify } from '../middleware';
+import {bindShopifyService, verifyRequest, verifyWebhookShopify} from '../middleware';
 import {getCustomerMetafields, issueStoreCredit, updateStoreCredit, deleteMetafieldAndDisableGiftCard} from '../api'
 
 const express = require('express');
@@ -6,21 +6,40 @@ const router = express.Router();
 
 
 router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService, async (req, res, next) => {
-  const customerId = req?.body?.admin_graphql_api_id;
+  const customerId = req?.body?.customerId;
   const shop = res.locals.shopify;
   let customerMetafields = null;
 
   try {
+    const err = new Error('UnAuthorized');
+    err.status = 400;
+    const formattedCustomerId = parseInt(customerId?.split('/')?.reverse()[0]);
+
+    const { data } = await res.locals.shopify.get(`/customers/${formattedCustomerId}.json`);
+    const tags = data?.customer?.tags?.split(', ');
+
+    if(!tags?.find(f => f.toLowerCase() === 'fnd_store_credit')){
+      return res.status(204).json({'message': 'ignored'});
+    }
+
+    const newTags = tags?.filter(f => f?.toLowerCase() !== 'fnd_store_credit')?.join(', ');
+    await res.locals.shopify.put(`/customers/${formattedCustomerId}.json`, {
+      "customer": {
+        "id": formattedCustomerId,
+        "tags": newTags,
+      }
+    });
+
+
+
     customerMetafields = await getCustomerMetafields(customerId, shop);
-    console.log(customerMetafields)
     const deleteStoreCreditField = customerMetafields.find(field => field.key === 'delete_store_credit') || null;
     const storeCreditField = customerMetafields.find(field => field.key === 'store_credit') || null;
     const storeCreditEncryptedDataField = customerMetafields.find(field => field.key === 'encrypted_gift_card') || null;
 
-    const deleteStoreCredit = deleteStoreCreditField?.value === 'true' ? true : false;
+    const deleteStoreCredit = deleteStoreCreditField?.value === 'true';
     const storeCreditAmount = parseFloat(storeCreditField?.value) || 0;
     const encryptedData = storeCreditEncryptedDataField?.value || null;
-    const formattedCustomerId = parseInt(customerId?.split('/')?.reverse()[0]);
 
     if (deleteStoreCredit) {
       await deleteMetafieldAndDisableGiftCard(encryptedData, formattedCustomerId, shop, res, next);
