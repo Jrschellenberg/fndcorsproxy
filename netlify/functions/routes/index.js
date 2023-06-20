@@ -57,6 +57,7 @@ router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService
 });
 
 router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req, res, next) => {
+  console.log('hi')
   try {
     const { encryptedData, customerId } = req.body;
     if(!encryptedData  ){
