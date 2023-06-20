@@ -56,12 +56,8 @@ export const verifyWebhookShopify = (req, res, next) => {
     webhookKey = process.env.WEBHOOK_KEY_CAD;
   }
 
-  const requestBody = JSON.stringify(req.body);
-
-  const generatedHash = crypto
-    .createHmac('sha256', secret)
-    .update(requestBody, 'utf8', 'hex')
-    .digest('base64');
+  const requestBody = req.rawBody; // This is added within the bodyparser inside App
+  const generatedHash = crypto.createHmac('sha256', webhookKey).update(requestBody).digest('base64');
 
   if (generatedHash !== hmacHeader) {
     return res.sendStatus(403);
@@ -90,7 +86,6 @@ export function bindShopifyService(req, res, next) {
     return next(err);
   }
 
-  console.log("STORE IS ", store);
   if(store === 'US'){
     res.locals.shopify = shopifyService.unitedStates;
   }

@@ -33,7 +33,11 @@ export default function expressApp() {
     app.use(cors());
   }
 
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({
+    verify: function(req, res, buf) {
+      req.rawBody = buf;
+    }
+  }));
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(expressSanitizer());
 
