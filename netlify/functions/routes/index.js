@@ -1,145 +1,39 @@
-import { bindShopifyService, verifyRequest } from '../middleware';
-import {generateGiftCardCode, decrypt, encrypt} from '../helpers'
+import { bindShopifyService, verifyRequest, verifyWebhookShopify } from '../middleware';
+import {getCustomerMetafields, issueStoreCredit, updateStoreCredit, deleteMetafieldAndDisableGiftCard} from '../api'
 
 const express = require('express');
 const router = express.Router();
 
 
-router.post('/store_credit', verifyRequest, bindShopifyService, async (req, res, next) => {
-  const { amount, customerId } = req.body;
-  if(!amount || !customerId ){
-    const err = new Error('Require field of "amount", "customerId"');
-    err.status = 400;
-    return next(err);
-  }
+router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService, async (req, res, next) => {
+  const customerId = req?.body?.admin_graphql_api_id;
+  const shop = res.locals.shopify;
+  let customerMetafields = null;
 
   try {
-    let response = await res.locals.shopify.post('/gift_cards.json', {
-      "gift_card": {
-        "note": `App Issued Store Credit`,
-        "initial_value": amount.toString(),
-        "code": generateGiftCardCode(customerId),
-        "customer_id": customerId,
-        "template_suffix": "store_credit",
-      }
-    });
+    customerMetafields = await getCustomerMetafields(customerId, shop);
+    console.log(customerMetafields)
+    const deleteStoreCreditField = customerMetafields.find(field => field.key === 'delete_store_credit') || null;
+    const storeCreditField = customerMetafields.find(field => field.key === 'store_credit') || null;
+    const storeCreditEncryptedDataField = customerMetafields.find(field => field.key === 'encrypted_gift_card') || null;
 
-    const encryptedGiftCardData = encrypt(response?.data?.gift_card);
+    const deleteStoreCredit = deleteStoreCreditField?.value === 'true' ? true : false;
+    const storeCreditAmount = parseFloat(storeCreditField?.value) || 0;
+    const encryptedData = storeCreditEncryptedDataField?.value || null;
+    const formattedCustomerId = parseInt(customerId?.split('/')?.reverse()[0]);
 
-    await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
-      "metafield": {
-        "namespace": "fnd",
-        "key": "encrypted_gift_card",
-        "type": "single_line_text_field",
-        "value": encryptedGiftCardData,
-      }
-    });
-
-    await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
-      "metafield": {
-        "namespace": "fnd",
-        "key": "store_credit",
-        "type": "number_decimal",
-        "value": "0.00"
-      }
-    });
-
-    res.status(201).json({
-      message: `Successfully Issued Store Credit Stored as ${encryptedGiftCardData}`
-    });
-  }
-  catch(e) {
-    try {
-      e = e.toJSON();
-      const err = new Error(`Shopify Err: ${e.message}`)
-      err.status = e.status;
-      return next(err)
+    if (deleteStoreCredit) {
+      await deleteMetafieldAndDisableGiftCard(encryptedData, formattedCustomerId, shop, res, next);
     }
-    catch(e){
-      const err = new Error("Unknown error")
-      err.status = 500;
-      return next(err);
+    else if (storeCreditAmount !== 0 && encryptedData) {
+      await updateStoreCredit(storeCreditAmount, encryptedData, formattedCustomerId, shop, res, next);
+    } else if (storeCreditAmount !== 0) {
+      await issueStoreCredit(storeCreditAmount, formattedCustomerId, shop, res, next);
+    } else {
+      res.status(204).json({'message': 'ignored'});
     }
-  }
-});
-
-
-router.put('/store_credit', verifyRequest, bindShopifyService, async (req, res, next) => {
-  const { amount, encryptedData, customerId } = req.body;
-  if(!encryptedData || !customerId || !amount ){
-    const err = new Error('Require field of "encryptedData", "customerId" and "amount"');
-    err.status = 400;
-    return next(err);
-  }
-
-  const decryptedData = decrypt(encryptedData);
-
-  try {
-    let response = await res.locals.shopify.get(`/gift_cards/${decryptedData.id}.json`);
-
-    const { id, balance, disabled_at } = response.data?.gift_card;
-
-    let total = amount;
-    let wasPreviousAmount = false;
-    if(!disabled_at && parseFloat(balance) > 0 ){
-      total += parseFloat(balance);
-      wasPreviousAmount = true;
-      await res.locals.shopify.post(`/gift_cards/${id}/disable.json`);
-    }
-
-
-    const giftCardNote = wasPreviousAmount
-        ? `App Issued Store Credit\nPrevious Gift Card ${id} had Total of ${balance} and Carried Forward Balance`
-        : `App Issued Store Credit`
-
-    response = await res.locals.shopify.post('/gift_cards.json', {
-      "gift_card": {
-        "note": giftCardNote,
-        "initial_value": total.toString(),
-        "code": generateGiftCardCode(customerId),
-        "customer_id": customerId,
-        "template_suffix": "store_credit",
-      }
-    });
-
-    const encryptedGiftCardData = encrypt(response?.data?.gift_card);
-
-    await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
-      "metafield": {
-        "namespace": "fnd",
-        "key": "encrypted_gift_card",
-        "type": "single_line_text_field",
-        "value": encryptedGiftCardData,
-      }
-    });
-
-    await res.locals.shopify.post(`/customers/${customerId}/metafields.json`, {
-      "metafield": {
-        "namespace": "fnd",
-        "key": "store_credit",
-        "type": "number_decimal",
-        "value": "0.00"
-      }
-    });
-
-    res.status(201).json({
-      message: `Successfully Updated Store Credit Stored as ${encryptedGiftCardData}`
-    });
-
-  }
-  catch(e){
-    try {
-      e = e.toJSON();
-      const err = new Error(`Shopify Err: ${e.message}`)
-      err.status = e.status;
-      return next(err)
-
-    }
-    catch(e){
-      const err = new Error("Unknown error")
-      err.status = 500;
-      return next(err);
-    }
+  } catch (error) {
+    console.log('Error retrieving customer metafields:', error);
   }
 });
 
@@ -196,6 +90,5 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
     }
   }
 });
-
 
 export default router;

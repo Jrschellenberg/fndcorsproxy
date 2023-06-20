@@ -1,6 +1,5 @@
 import * as crypto from 'node:crypto';
 
-
 const key = crypto.createHash('sha256').update(process.env.PRIVATE_KEY).digest();
 const iv = crypto.createHash('md5').update(process.env.PRIVATE_IV).digest();
 

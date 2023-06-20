@@ -46,11 +46,50 @@ export function verifyRequest(req, res, next) {
 }
 
 
+export const verifyWebhookShopify = (req, res, next) => {
+  const hmacHeader = req.get('X-Shopify-Hmac-Sha256')
+  let webhookKey;
+
+  if (req.headers['x-shopify-shop-domain'].includes('usa')) {
+    webhookKey = process.env.WEBHOOK_KEY_USA;
+  } else {
+    webhookKey = process.env.WEBHOOK_KEY_CAD;
+  }
+
+  const requestBody = JSON.stringify(req.body);
+
+  const generatedHash = crypto
+    .createHmac('sha256', secret)
+    .update(requestBody, 'utf8', 'hex')
+    .digest('base64');
+
+  if (generatedHash !== hmacHeader) {
+    return res.sendStatus(403);
+  }
+
+  next();
+};
+
+
+
 export function bindShopifyService(req, res, next) {
   const err = new Error('No Shop URL Provided');
   err.status = 400;
 
-  const store =  req?.get('X_FND_STORE');
+  let store;
+
+  if (req?.get('X_FND_STORE')) {
+    store =  req?.get('X_FND_STORE');
+  } else if (req.headers['x-shopify-shop-domain']) {
+    if (req.headers['x-shopify-shop-domain'].includes('usa')) {
+      store = 'US'
+    } else {
+      store = 'CAD'
+    }
+  } else {
+    return next(err);
+  }
+
   console.log("STORE IS ", store);
   if(store === 'US'){
     res.locals.shopify = shopifyService.unitedStates;
@@ -58,9 +97,5 @@ export function bindShopifyService(req, res, next) {
   else if(store === 'CAD'){
     res.locals.shopify = shopifyService.canada;
   }
-  else {
-    return next(err);
-  }
-  console.log("did we hit this shit?");
   next();
 }
