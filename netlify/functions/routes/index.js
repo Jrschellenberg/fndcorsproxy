@@ -1,25 +1,8 @@
 import {bindShopifyService, verifyRequest, verifyWebhookShopify} from '../middleware';
 import {getCustomerMetafields, issueStoreCredit, updateStoreCredit, deleteMetafieldAndDisableGiftCard} from '../api'
-import cors from "cors";
 
 const express = require('express');
 const router = express.Router();
-
-const whitelist = ['https://www.smackpetfood.com', 'https://smackpetfood.com', 'https://ca.smackpetfood.com', 'https://smack-pet-food-usa.myshopify.com', 'https://smack-pet-food.myshopify.com', 'http://localhost:8888' ]
-const corsOptions = {
-  origin: function (origin, callback) {
-    if(process.env.NODE_ENV === 'development'){
-      callback(null, true)
-    }
-
-
-    if (whitelist.indexOf(origin) !== -1) {
-      callback(null, true)
-    } else {
-      callback(new Error('Not allowed by CORS'))
-    }
-  }
-}
 
 
 router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService, async (req, res, next) => {
@@ -73,8 +56,7 @@ router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService
   }
 });
 
-router.post('/store_credit/code', cors(corsOptions), verifyRequest, bindShopifyService, async (req, res, next) => {
-  console.log('hi')
+router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req, res, next) => {
   try {
     const { encryptedData, customerId } = req.body;
     if(!encryptedData  ){
