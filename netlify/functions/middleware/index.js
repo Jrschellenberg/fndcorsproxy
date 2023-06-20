@@ -7,7 +7,6 @@ err.status = 403;
 
 export function verifyRequest(req, res, next) {
   if(process.env.NODE_ENV === 'development'){
-    console.log("DOES IT HIT HERE?")
     return next();
   }
 
@@ -22,7 +21,7 @@ export function verifyRequest(req, res, next) {
     const currentTimeStampSeconds = Math.floor(Date.now() / 1000);
     const requestedTimeStamp = parseInt(timestamp);
     // Timestamp is more than 10 seconds old
-    if(currentTimeStampSeconds - requestedTimeStamp > 10) {
+    if(currentTimeStampSeconds - requestedTimeStamp > 20) {
       return next(err);
     }
 

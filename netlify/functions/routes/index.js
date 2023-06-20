@@ -1,3 +1,4 @@
+import { decrypt } from '../helpers';
 import {bindShopifyService, verifyRequest, verifyWebhookShopify} from '../middleware';
 import {getCustomerMetafields, issueStoreCredit, updateStoreCredit, deleteMetafieldAndDisableGiftCard} from '../api'
 
@@ -57,7 +58,6 @@ router.post('/webhook/customer/update', verifyWebhookShopify, bindShopifyService
 });
 
 router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req, res, next) => {
-  console.log('hi')
   try {
     const { encryptedData, customerId } = req.body;
     if(!encryptedData  ){
@@ -98,6 +98,7 @@ router.post('/store_credit/code', verifyRequest, bindShopifyService, async (req,
   }
   catch(e){
     try {
+      console.log(e)
       e = e.toJSON();
       const err = new Error(`Shopify Err: ${e.message}`)
       err.status = e.status;
