@@ -12,27 +12,6 @@ import router from '../routes';
 /* My express App */
 export default function expressApp() {
   const app = express();
-
-  const whitelist = ['https://www.smackpetfood.com', 'https://smackpetfood.com', 'https://ca.smackpetfood.com', 'https://smack-pet-food-usa.myshopify.com', 'https://smack-pet-food.myshopify.com', 'http://localhost:8888' ]
-  const corsOptions = {
-    origin: function (origin, callback) {
-      if (whitelist.indexOf(origin) !== -1) {
-        callback(null, true)
-      } else {
-        callback(new Error('Not allowed by CORS'))
-      }
-    }
-  }
-
-  // Apply express middlewares
-  if(!process.env.NODE_ENV){
-    app.use(cors(corsOptions));
-    console.log("got here INSIDE");
-  }
-  else {
-    app.use(cors());
-  }
-
   app.use(bodyParser.json({
     verify: function(req, res, buf) {
       req.rawBody = buf;
