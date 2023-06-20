@@ -12,6 +12,8 @@ import router from '../routes';
 /* My express App */
 export default function expressApp() {
   const app = express();
+  app.use(cors());
+
   app.use(bodyParser.json({
     verify: function(req, res, buf) {
       req.rawBody = buf;
